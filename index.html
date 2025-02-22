@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>井字棋 - 单机版</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #74ebd5, #acb6e5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow: auto;
+        }
+
+        #game {
+            background-color: #ffffff;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+            text-align: center;
+            animation: fadeIn 1s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        #title {
+            font-size: 2em;
+            color: #333;
+            margin-bottom: 20px;
+            animation: bounce 2s infinite;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        #rules-panel {
+            background-color: #f9f9f9;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            text-align: left;
+            max-width: 340px;
+            margin-left: auto;
+            margin-right: auto;
+            font-size: 0.95em;
+            color: #555;
+        }
+
+        #message {
+            font-size: 1.5em;
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .board {
+            display: grid;
+            grid-template-columns: repeat(3, 110px);
+            grid-gap: 12px;
+            margin: 0 auto;
+            width: 350px;
+        }
+
+        .cell {
+            width: 110px;
+            height: 110px;
+            background-color: #fff;
+            border: 3px solid #333;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3em;
+            color: #333;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .cell:hover {
+            transform: scale(1.1) rotate(2deg);
+            background-color: #f1f1f1;
+        }
+
+        .cell.x {
+            color: #ff7f50;
+        }
+
+        .cell.o {
+            color: #4682b4;
+        }
+
+        #restart {
+            padding: 12px 25px;
+            font-size: 1.1em;
+            background: linear-gradient(90deg, #ff7f50, #ff4500);
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 20px;
+        }
+
+        #restart:hover {
+            background: linear-gradient(90deg, #ff4500, #ff7f50);
+            transform: scale(1.05);
+        }
+
+        .highlight {
+            background-color: #ffd700;
+            animation: winFlash 1s infinite;
+        }
+
+        @keyframes winFlash {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.15); opacity: 0.8; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        #victory-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            animation: popUp 0.5s ease;
+        }
+
+        @keyframes popUp {
+            from { transform: scale(0.5); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
+        #close-modal {
+            margin-top: 15px;
+            padding: 8px 16px;
+            background-color: #ff4500;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        #close-modal:hover {
+            background-color: #ff6347;
+        }
+    </style>
+</head>
+<body>
+<div id="game">
+    <h1 id="title">井字棋大作战</h1>
+    <div id="rules-panel">
+        <h3>游戏规则</h3>
+        <ul>
+            <li>玩家（X）先手，电脑（O）后手。</li>
+            <li>第5步后，最早的棋子会被清空。</li>
+            <li>三枚棋子连成直线即胜利。</li>
+            <li>点击“重新开始”重置游戏。</li>
+        </ul>
+    </div>
+    <div id="message">欢迎！轮到玩家 X</div>
+    <div class="board">
+        <div class="cell" data-index="0"></div>
+        <div class="cell" data-index="1"></div>
+        <div class="cell" data-index="2"></div>
+        <div class="cell" data-index="3"></div>
+        <div class="cell" data-index="4"></div>
+        <div class="cell" data-index="5"></div>
+        <div class="cell" data-index="6"></div>
+        <div class="cell" data-index="7"></div>
+        <div class="cell" data-index="8"></div>
+    </div>
+    <button id="restart">重新开始</button>
+</div>
+
+<div id="victory-modal">
+    <div class="modal-content">
+        <h2 id="victory-message"></h2>
+        <button id="close-modal">关闭</button>
+    </div>
+</div>
+
+<script>
+    const messageElement = document.getElementById('message');
+    const cells = document.querySelectorAll('.cell');
+    const restartButton = document.getElementById('restart');
+    const victoryModal = document.getElementById('victory-modal');
+    const victoryMessage = document.getElementById('victory-message');
+    const closeModal = document.getElementById('close-modal');
+
+    let boardState = Array(9).fill(0); // 0: 空, 1: 玩家X, 2: 电脑O
+    let queue = [];
+    let currentPlayer = 1; // 1: 玩家, 2: 电脑
+    let gameActive = true;
+
+    const winningConditions = [
+        [0, 1, 2], [3, 4, 5], [6, 7, 8],
+        [0, 3, 6], [1, 4, 7], [2, 5, 8],
+        [0, 4, 8], [2, 4, 6]
+    ];
+
+    function renderBoard() {
+        cells.forEach((cell, index) => {
+            cell.classList.remove('x', 'o', 'highlight');
+            if (boardState[index] === 1) {
+                cell.textContent = 'X';
+                cell.classList.add('x');
+            } else if (boardState[index] === 2) {
+                cell.textContent = 'O';
+                cell.classList.add('o');
+            } else {
+                cell.textContent = '';
+            }
+        });
+    }
+
+    function displayMessage(message) {
+        messageElement.textContent = message;
+    }
+
+    function showVictoryModal(message) {
+        victoryMessage.textContent = message;
+        victoryModal.style.display = 'flex';
+    }
+
+    function checkWin(player, board = boardState) {
+        for (const condition of winningConditions) {
+            if (condition.every(index => board[index] === player)) {
+                condition.forEach(index => cells[index].classList.add('highlight'));
+                return true;
+            }
+        }
+        return false;
+    }
+
+    function playerMove(index) {
+        if (!gameActive || boardState[index] !== 0) return;
+
+        boardState[index] = currentPlayer;
+        queue.push(index);
+
+        if (queue.length > 5) {
+            const oldIndex = queue.shift();
+            boardState[oldIndex] = 0;
+        }
+
+        renderBoard();
+
+        if (checkWin(currentPlayer)) {
+            displayMessage('');
+            showVictoryModal('玩家 X 胜利啦！🎉');
+            gameActive = false;
+            return;
+        }
+
+        currentPlayer = 2;
+        displayMessage('电脑思考中...');
+        setTimeout(computerMove, 500);
+    }
+
+    function computerMove() {
+        if (!gameActive) return;
+
+        const emptyCells = boardState
+            .map((val, index) => (val === 0 ? index : null))
+            .filter(val => val !== null);
+
+        for (const index of emptyCells) {
+            const tempBoard = [...boardState];
+            tempBoard[index] = 2;
+            if (checkWin(2, tempBoard)) {
+                makeMove(index);
+                return;
+            }
+        }
+
+        for (const index of emptyCells) {
+            const tempBoard = [...boardState];
+            tempBoard[index] = 1;
+            if (checkWin(1, tempBoard)) {
+                makeMove(index);
+                return;
+            }
+        }
+
+        if (emptyCells.includes(4)) {
+            makeMove(4);
+            return;
+        }
+
+        const corners = [0, 2, 6, 8].filter(index => emptyCells.includes(index));
+        if (corners.length > 0) {
+            const randomCorner = corners[Math.floor(Math.random() * corners.length)];
+            makeMove(randomCorner);
+            return;
+        }
+
+        const randomIndex = emptyCells[Math.floor(Math.random() * emptyCells.length)];
+        makeMove(randomIndex);
+    }
+
+    function makeMove(index) {
+        boardState[index] = currentPlayer;
+        queue.push(index);
+
+        if (queue.length > 5) {
+            const oldIndex = queue.shift();
+            boardState[oldIndex] = 0;
+        }
+
+        renderBoard();
+
+        if (checkWin(currentPlayer)) {
+            displayMessage('');
+            showVictoryModal('电脑 O 胜利啦！🎉');
+            gameActive = false;
+            return;
+        }
+
+        currentPlayer = 1;
+        displayMessage('轮到玩家 X');
+    }
+
+    function restartGame() {
+        boardState = Array(9).fill(0);
+        queue = [];
+        currentPlayer = 1;
+        gameActive = true;
+        renderBoard();
+        displayMessage('欢迎！轮到玩家 X');
+        victoryModal.style.display = 'none';
+    }
+
+    cells.forEach(cell => {
+        cell.addEventListener('click', () => {
+            const index = parseInt(cell.getAttribute('data-index'));
+            if (currentPlayer === 1 && gameActive) {
+                playerMove(index);
+            }
+        });
+    });
+
+    restartButton.addEventListener('click', restartGame);
+    closeModal.addEventListener('click', restartGame);
+
+    restartGame();
+</script>
+</body>
+</html>
